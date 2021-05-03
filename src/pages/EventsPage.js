@@ -1,264 +1,374 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import BackendAPI from "../api/BackendAPI";
-import AddCircleSharpIcon from "@material-ui/icons/AddCircleSharp";
 import { navigate } from "hookrouter";
-import Moment from "react-moment";
+import ScrollMenu from "react-horizontal-scrolling-menu";
+import { Fab } from "@material-ui/core";
+import AddIcon from "@material-ui/icons/Add";
 import {
-  Button,
-  Card,
-  CardContent,
-  CardActionArea,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
-  Grid,
-  makeStyles,
+  Button, //eslint-disable-line
   Typography,
   ThemeProvider,
-  createMuiTheme,
-  Box,
+  createMuiTheme, //eslint-disable-line
 } from "@material-ui/core";
-import DeleteIcon from "@material-ui/icons/Delete";
+import { SnackbarContext } from "../contexts/SnackbarContext";
+import { UserContext } from "../contexts/UserContext";
+import EventDialog from "../components/eventsComponents/EventDialog.js";
+import EventCard from "../components/eventsComponents/EventCard.js";
 import "../App.css";
-
 const { fetchEventsAsync, deleteEventAsync } = BackendAPI();
 
+// Event page, check components EventCard.js and EventDialog.js for their functionality
 const Events = () => {
   const [sorted, setSorted] = useState("all");
+  const [show, setShow] = useState(false);
+  const [dialogData, setDialogData] = useState("");
+  const [selected, setSelected] = useState("all");
+  const { setSnackbar } = useContext(SnackbarContext);
+  const { user } = useContext(UserContext);
+  const [users, setUsers] = useState([]);
+  const { fetchUsersAsync } = BackendAPI();
+  const [sortedCategory, setSortedCategory] = useState("Ascending");
+  const [sortedTitle, setSortedTitle] = useState("Ascending");
   const [events, setEvents] = useState([]);
+  const [menuCategories, setMenuCategories] = useState([]);
+  const [isOwnerOrAdmin, setOwnerOrAdmin] = useState(false);
+  const [sortedEvents, setSortedEvents] = useState([]);
+
   const getEvents = async () => {
     try {
       const response = await fetchEventsAsync();
       setEvents(response);
+      setMenuCategories(response);
+      setSortedEvents(response);
     } catch (e) {
       console.log("error fetching bulletins");
     }
   };
-  
+  const dynamicSort = (property) => {
+    var sortOrder = 1;
+    if (property[0] === "-") {
+      sortOrder = -1;
+      property = property.substr(1);
+    } else {
+      return function (a, b) {
+        return a[property] < b[property]
+          ? -1
+          : a[property] > b[property]
+          ? 1
+          : 0 * sortOrder;
+      };
+    }
+    return function (a, b) {
+      return a[property] > b[property]
+        ? -1
+        : a[property] > b[property]
+        ? 1
+        : 0 * sortOrder;
+    };
+  };
+  const sorter = (param) => {
+    console.log("PARAM:", param);
+    switch (param) {
+      case "-category":
+        if (sorted === "all") {
+          setSortedCategory("Descending");
+          setSortedEvents(events);
+          setEvents(events.sort(dynamicSort(param)));
+        }
+        break;
+      case "category":
+        if (sorted === "all") {
+          setSortedCategory("Ascending");
+          setSortedEvents(events);
+          setEvents(events.sort(dynamicSort(param)));
+        }
+        break;
+      case "-title":
+        if (sorted === "all") {
+          setSortedTitle("Descending");
+          setEvents(events.sort(dynamicSort(param)));
+        } else {
+          handleEvents(param, "Descending");
+        }
+        break;
+      case "title":
+        if (sorted === "all") {
+          setSortedTitle("Ascending");
+          setEvents(events.sort(dynamicSort(param)));
+        } else {
+          handleEvents(param, "Ascending");
+        }
+
+        break;
+      default:
+        break;
+    }
+  };
+
+  const getUsers = async () => {
+    try {
+      const response = await fetchUsersAsync();
+      setUsers(response);
+    } catch (e) {
+      console.log("error fetching users");
+      console.log(e);
+    }
+  };
+
   useEffect(() => {
     getEvents();
-  }, []);
+    getUsers();
+  }, []); //eslint-disable-line
+  // Handles event dialog window data
 
+  const handleShow = (data) => {
+    if (data.senderId === user.id || user.isAdmin) {
+      setOwnerOrAdmin(true);
+    } else {
+      setOwnerOrAdmin(false);
+    }
+    setDialogData(data);
+    setShow(true);
+  };
+
+  // Closes the event dialog
+  const handleClose = () => {
+    setShow(false);
+  };
+  // remove duplicate categories
+
+  // Scrollmenu select to show right text / category
+  const onSelect = (text) => {
+    setSelected({ selected: text });
+    handleSorted(text);
+  };
+  console.log(sortedEvents);
+  const handleEvents = (param, sortingOrder) => {
+    console.log("HANDLEEVENTS:", param, sortingOrder);
+    setSortedTitle(sortingOrder);
+    setSortedEvents(
+      sortedEvents
+        .filter((item) => item.category === sorted)
+        .sort(dynamicSort(param))
+    );
+  };
+  // sort the event list depending on scrollmenu choice
   const handleSorted = (event) => {
     if (event !== "all") {
-      const toString = event.category;
-      setSorted(toString);
+      // separate category and id to enable sorting
+      console.log("EVENT:", event);
+      // split category text to separate category from id (stored in event)
+      const array = event.split(" ").map((data) => {
+        return data;
+      });
+      const id = array[array.length - 1];
+      // Slice array to remove id, string it, replace commas with spaces to return the whole original category name
+      const category = array.slice(0, -1).toString().replace(/,/g, " ");
+
+      // not used for anything but
+      console.log(id);
+      setSorted(category);
     } else {
       setSorted(event);
     }
   };
 
+  //go to create event page
   const createEventsNav = () => {
     navigate("/event-create");
   };
 
-  const useStyles = makeStyles({
-    eventCard: {
-      border: '2px solid blue',
-      borderRadius: 4,
-    },
-  });
+  // handles deleting of event
+  const deleteEvent = (id, category) => {
+    deleteEventAsync(id, category).then((res) => {
+      // creates a new state without the deleted object
+      const newState = events.filter((item) => item.id !== id);
+      // sets the new state "newState" as the current "events" state
+      // Snackbar will alert about the status
+      setEvents(newState);
+      if (res.status === 200) {
+        // removes event if
+        setSnackbar("Deleted event succesfully", 3, 2000);
+        handleClose();
+      } else if (res.status === 400) {
+        setSnackbar("Response returned status 400, cannot delete", 0, 2000);
+        console.log("ERROR status:", res.status);
+      } else {
+        setSnackbar(
+          "Something went wrong deleting event, status: ",
+          res.status,
+          1,
+          2000
+        );
+        console.log("ERROR STATUS", res.status);
+      }
+    });
+  };
+
+  // scrollmenu item populating
+  const MenuItem = ({ text, selected }) => {
+    return (
+      <div className={`menu-item ${selected ? "active" : ""}`}>{text}</div>
+    );
+  };
+
+  // left and right arrows for scrollmenu
+  const Arrow = ({ text, className }) => {
+    return <div className={className}>{text}</div>;
+  };
+
+  // left and right arrows
+  const ArrowLeft = Arrow({ text: "<", className: "arrowprev" });
+  const ArrowRight = Arrow({ text: ">", className: "arrownext" });
 
   const categoryButtonTheme = createMuiTheme({
     overrides: {
       MuiButton: {
         // category button
         outlinedPrimary: {
-          color: 'blue',
+          color: "blue",
           borderRadius: 20,
-        },
-      },
-    }
-  }
-  );
-
-  const eventCardTheme = createMuiTheme({
-    spacing: 5,
-    breakpoints: {
-      values: {
-        // not applied
-        xsm: 280,
-        sm: 360,
-        lg: 768,
-        xl: 1024,
-        xxl: 1920,
-      },
-      MuiPaper: {
-        root: {
-          width: "100%",
-        },
-        rounded: {
-          //textcolor
-          color: "black",
-          borderRadius: 5,
-        },
-      },
-      // card
-      MuiButtonBase: {
-        root: {
-          // text color
-          color: "black",
-        },
-      },
-      MuiCardContent: {
-        root: {
-          padding: "20px",
-          marginLeft: "0",
-          marginRight: "0",
+          width: "70%",
+          marginTop: "2%",
+          marginBottom: "2%",
         },
       },
     },
   });
+  const eventSender = users.filter((o1) =>
+    events.map((o2) => o1.id === o2.senderId)
+  );
 
-  // Just a list of things for testing purposes
-  const CategoryChoose = (props) => {
-    const category = props.buttonData;
-    
+  // All events containing array
+  const allArray = events.map((data) => (
+    <li onClick={() => handleShow(data)} key={data.id}>
+      <EventCard
+        eventSender={eventSender}
+        data={data}
+        handleDelete={deleteEvent}
+      />
+    </li>
+  ));
 
-    return (
-      <ThemeProvider theme={categoryButtonTheme}>
-        <Button
-          onClick={() => handleSorted({ category })}
-          variant="outlined"
-          color="primary"
-        >
-          {category}
-        </Button>
-      </ThemeProvider>
-    );
-  };
-
-  const EventsPage = (props) => {
-    const { title, body, category, date, id } = props.data;
-    const [show, setShow] = useState(false);
-    const handleClose = () => setShow(false);
-    const handleShow = () => setShow(true);
-    const styles = useStyles();
-
-    const deleteEvent = (id, category) => {
-      deleteEventAsync(id, category).then((res) => {
-        // creates a new state without the deleted object
-      const newState = events.filter(item => item.id !== id)
-      // sets the new state "newState" as the current "events" state
-      setEvents(newState);
-      if (res.status === 200) {
-        // removes event if 
-        handleClose();
-        } else if (res.status === 400)
-        {
-          console.log("ERROR status:", res.status);
-        }
-          console.log("ERROR STATUS", res.status)
-      })
-    }
-
-    return (
-      // Card for event details and dialog for more info
-        <ThemeProvider theme={eventCardTheme}>
-          <Card onClick={() => handleShow()}>
-            <CardActionArea >
-              <CardContent className={styles.eventCard}>
-                <Box display="flex" flexDirection="row" minWidth="200px">
-                  <Box width="100%">
-                    <Typography variant="h6" component="h6">{title}</Typography>
-                  </Box>
-                  <Box flexShrink={0}>
-                    <Typography variant="body1" component="body1">{category}</Typography>
-                  </Box>
-                </Box>
-                <Box width="100%" justifyContent="flex-start">
-                  <Box minHeight="100px" marginTop="1%" marginBottom="1%">
-                    <Typography variant="body2" component="body2">{body}</Typography>
-                  </Box>           
-                </Box>     
-                <Box display="flex" justifyContent="flex-end">
-                 <Typography variant="subtitle" component="subtitle">
-                  <Moment format="DD-MM-YYYY" date={date} />{" "}
-                  <Moment format="HH:mm:ss" date={date} />
-                </Typography>
-                </Box>
-              </CardContent>
-            </CardActionArea>
-          </Card>
-          <Dialog open={show} onClose={handleClose} fullWidth={true}>
-            <Grid container justify="flex-end" xl={2} direction="row">
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={() => deleteEvent(id, category)}
-                startIcon={<DeleteIcon />}
-              ></Button>
-              <IconButton className="open event" onClick={handleClose}>
-                X
-              </IconButton>
-            </Grid>
-            <DialogTitle id="max-width-dialog-title">{title}</DialogTitle>
-            <DialogContent>{category}</DialogContent>
-            <DialogContent>{body}</DialogContent>
-            <DialogContent>
-              <Moment format="DD-MM-YYYY" date={date} />{" "}
-              <Moment format="HH:mm:ss" date={date} />
-            </DialogContent>
-          </Dialog>
-        </ThemeProvider>
-    );
-  };
-
-  const Event = () => {
-    const styles = useStyles();
-
-    // Two separate arrays, all items or sorted items depending on user choice (all or specific category)
-    // Not optimal, but works as intended for now
-
-    const allArray = events.map((data) => (
-      <EventsPage key={data.senderId} data={data} />
+  // events sorted by category choice
+  const sortedArray = sortedEvents
+    .filter((item) => item.category === sorted)
+    .map((data) => (
+      <li onClick={() => handleShow(data)} key={data.id}>
+        <EventCard
+          data={data}
+          eventSender={eventSender}
+          handleDelete={deleteEvent}
+        />
+      </li>
     ));
-    console.log(events);
-    const sortedArray = events
-      .filter((item) => item.category === sorted)
-      .map(({ title, body, category, date, senderId, id }) => {
-        return { title, body, category, date, senderId, id };
-      })
-      .map((data) => <EventsPage data={data} />);
-    const returnSingleCategory = (value, index, self) => {
-      return self.indexOf(value) === index;
-    };
-    const filteredCategory = events
-      .filter((item) => item)
-      .map(({ category }) => {
-        return { category };
-      })
-      .map((data) => data.category);
-    const categoryList = filteredCategory
-      .filter(returnSingleCategory)
-      .map((data) => <CategoryChoose buttonData={data} />);
+  // remove duplicates from menuitems (category)
+  const obj = [
+    ...new Map(
+      menuCategories.map((item) => [JSON.stringify(item.category), item])
+    ).values(),
+  ];
+  // Scrollmenu items mapping
+  const menuItems = obj.map(({ category, id }) => (
+    <MenuItem
+      text={category}
+      // save both category and id to create unique key and also save category for future
+      // handling in onSelect() -function
+      key={category + " " + id}
+      selected={selected}
+    />
+  ));
 
-    return (
-      <div>
-        <div>
+  return (
+    <div className="EventsPage">
+      <ThemeProvider theme={categoryButtonTheme}>
+        <Typography align="center">
           <Button
-            className={styles.eventButton}
+            className="eventButton"
             onClick={() => handleSorted("all")}
             variant="outlined"
             color="primary"
           >
-            Show All
+            Show All Events
           </Button>
-          {categoryList}
-          <IconButton
-            onClick={() => createEventsNav()}
-            className={styles.postEventButton}
-            aria-label="open"
-          >
-            <AddCircleSharpIcon />
-          </IconButton>
-        </div>
-        {sorted === "all" ? <ul>{allArray}</ul> : <ul>{sortedArray}</ul>}
-      </div>
-    );
-  };
-  return <Event />;
+          {sorted === "all" ? (
+            <div>
+              <Typography align="center">
+                <Button
+                  onClick={() => {
+                    if (sortedCategory === "Descending") {
+                      sorter("category");
+                    } else sorter("-category");
+                  }}
+                >
+                  SORT BY CATEGORY {sortedCategory}
+                </Button>
+              </Typography>
+              <Typography align="center">
+                <Button
+                  onClick={() => {
+                    if (sortedTitle === "Descending") {
+                      sorter("title");
+                    } else sorter("-title");
+                  }}
+                >
+                  SORT BY TITLE {sortedTitle}
+                </Button>
+              </Typography>
+            </div>
+          ) : (
+            <div>
+              <Typography align="center">
+                <Button
+                  onClick={() => {
+                    if (sortedTitle === "Descending") {
+                      sorter("title");
+                    } else sorter("-title");
+                  }}
+                >
+                  SORT BY TITLE {sortedTitle}
+                </Button>
+              </Typography>
+            </div>
+          )}
+        </Typography>
+      </ThemeProvider>
+      <ScrollMenu
+        data={menuItems}
+        arrowLeft={ArrowLeft}
+        arrowRight={ArrowRight}
+        wheel={true}
+        selected={selected}
+        onSelect={onSelect}
+        alignOnResize={true}
+        translate={0}
+      />
+      {sorted === "all" ? <ul>{allArray}</ul> : <ul>{sortedArray}</ul>}
+      <EventDialog
+        userData={user}
+        show={show}
+        handleClose={handleClose}
+        handleOwner={isOwnerOrAdmin}
+        data={dialogData}
+        deleteEvent={deleteEvent}
+      />
+      <Fab
+        color="primary"
+        aria-label="add"
+        style={{
+          margin: 0,
+          top: "auto",
+          right: 16,
+          bottom: 16,
+          left: "auto",
+          position: "fixed",
+        }}
+        onClick={() => createEventsNav()}
+      >
+        <AddIcon />
+      </Fab>
+    </div>
+  );
 };
 
 export default Events;

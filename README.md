@@ -1,129 +1,70 @@
-# NodeJS Express API for Idea Barrel – connected to Azure Cosmos DB
-<br></br>
+# Getting Started with Create React App
 
-## Base URL: http://ibapi.mkayyeedev.ninja
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-### Every request to any url derived from the base url must contain a header field: "dev_token", and a value that is defined in the front end client assigned to that field. A request without dev_token responds with a 404.
-<br></br> 
+## Available Scripts
 
+In the project directory, you can run:
 
-## The API exposes 4 main endpoints:
+### `yarn start`
 
-### /ideas
-### /bulletins
-### /events
-### /users
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-#
-## With the following HTTP methods:
+The page will reload if you make edits.\
+You will also see any lint errors in the console.
 
-### **GET**
-### /ideas
-### /bulletins
-### /events
-### /users
-### /ideas/id
-### /bulletins/id
-### /events/id
-### /users/id
-#
+### `yarn test`
 
-### **POST** (Include JSON object describing the post in the body)
-### /ideas
-### /bulletins
-### /events
-#
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-### **UPDATE** (Include JSON object describing the post in the body)
-### /ideas/id
-### /bulletins/id
-### /events/id
-#
+### `yarn build`
 
-### **DELETE**
-### /ideas/id/category
-### /bulletins/id/category
-### /events/id/category
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-<br></br>
-## An example post stored into the Cosmos DB can be seen from the table below.
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
-|senderId|title|body|category|date|id|
-|--------|-----|----|--------|----|--|
-|2325371f-8c56-40f9-a658-1f4ca6c0fa52|The greatest idea|Testing ideas from Postman|test category|2021-03-28T14:19:41.875Z|"22d4a7ad-624a-4f7e-9c7d-efff1e47c2d6"|
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-#
-All post request to any of the 3 CRUD endpoints (/ideas, /events, /bulletins) should have values assigned to the following four fields: **senderId, title, body, category** – as they are null-checked before any other processing. If a value is missing, a 400 response will be returned along with a JSON body, containing the given input and a reason why the request failed. 
-#
-In addition to the four necessary fields, you can include almost anything. Every post is automatically assigned fields for its **id**, and a **date** indicating when it was created. When a post succeeds, the server will respond with a status code 200 with a JSON object of the post in the body with the automatically added fields.
-#
+### `yarn eject`
 
-<br></br>
-## An example post request body to http://ibapi.mkayyeedev.ninja/ideas
+**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
 
-```
-{
-    "title": "MyTitle",
-    "senderId": "2325371f-8c56-40f9-a658-1f4ca6c0fa52",
-    "body": "Too tired to write a huge wall of text here",
-    "category": "MyCategory",
-    "anotherField1": "value1",
-    "anotherField2": "value2",
-    "anotherField3": "value3",
-    "anotherField4": "value4"
-}
-```
-## Response:
-```
-STATUS: 200 OK
+If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-{
-    "title": "MyTitle",
-    "senderId": "2325371f-8c56-40f9-a658-1f4ca6c0fa52",
-    "body": "Too tired to write a huge wall of text here",
-    "category": "MyCategory",
-    "anotherField1": "value1",
-    "anotherField2": "value2",
-    "anotherField3": "value3",
-    "anotherField4": "value4",
-    "date": "2021-03-28T15:16:10.927Z",
-    "id": "bec64705-d304-4c53-9bf1-2537319c86d0",
-    "_rid": "ecsyAKG9rrUJAAAAAAAAAA==",
-    "_self": "dbs/ecsyAA==/colls/ecsyAKG9rrU=/docs/ecsyAKG9rrUJAAAAAAAAAA==/",
-    "_etag": "\"5500bde0-0000-0c00-0000-60609dbb0000\"",
-    "_attachments": "attachments/",
-    "_ts": 1616944571
-}
-```
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
 
+You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
-## An example of an invalid post request body to http://ibapi.mkayyeedev.ninja/ideas
+## Learn More
 
-```
-{
-    "title": "MyTitle",
-    "body": "Too tired to write a huge wall of text here",
-    "category": "MyCategory",
-    "anotherField1": "value1",
-    "anotherField2": "value2",
-    "anotherField3": "value3",
-    "anotherField4": "value4"
-}
-```
-## Response:
-```
-STATUS: 400 Bad Request
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-{
-    "error": "senderId, category, title or body missing",
-    "input": {
-        "title": "MyTitle",
-        "body": "Too tired to write a huge wall of text here",
-        "category": "MyCategory",
-        "anotherField1": "value1",
-        "anotherField2": "value2",
-        "anotherField3": "value3",
-        "anotherField4": "value4"
-    }
-}
-```
+To learn React, check out the [React documentation](https://reactjs.org/).
+
+### Code Splitting
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+
+### Analyzing the Bundle Size
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `yarn build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)

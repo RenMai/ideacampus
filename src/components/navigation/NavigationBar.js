@@ -14,7 +14,14 @@ const useStyles = makeStyles((theme) => ({
     alignItems: 'flex-start',
     padding: theme.spacing(1),
     minHeight: "64px",
-    flexGrow: 1
+    flexGrow: 1, 
+     [theme.breakpoints.up("lg")]: {
+      width: "50%",
+      justifyContent: "center",
+      marginLeft: "auto",
+      marginRight: "auto",
+      marginTop: "5px",
+    }
   },
   image: {
     flexGrow: 1,
@@ -31,7 +38,9 @@ const useStyles = makeStyles((theme) => ({
   },
   offset: theme.mixins.toolbar,
   desktopNav: {
-    padding: theme.spacing(2),
+    paddingLeft: "8px",
+    paddingRight: "8px",
+    paddingTop: "16px",
     flexGrow: 1,
     color: "#FFFFFF"
   }
@@ -64,7 +73,7 @@ const NavigationBar = () => {
         <Toolbar className={classes.toolbar}>
           <img src={logo} className={classes.image} onClick={() => handleNavigate("/")} alt="MyCampus Logo"/>
           <Typography variant="h6" className={classes.title}></Typography>
-          {width < 670 // Breakpoint for view width of 670px. Smaller width renders only harmburger menu 
+          {width < 720 // Breakpoint for view width of 720px. Smaller width renders only harmburger menu 
             ? <div>
               <IconButton className={classes.menuButton} onClick={handleMenuClick} aria-haspopup="true">
                 <MenuIcon />
