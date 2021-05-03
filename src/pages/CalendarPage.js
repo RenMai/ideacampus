@@ -1,4 +1,4 @@
-import { React, useState, useEffect,useContext } from "react";
+import { React, useState, useEffect, useContext } from "react";
 import {
   Inject,
   ScheduleComponent,
@@ -16,64 +16,98 @@ import BackendAPI from "../api/BackendAPI";
 import { WebApiAdaptor } from "@syncfusion/ej2-data";
 import { UserContext } from "../contexts/UserContext";
 
-
-const { fetchEventsAsync,fetchUsersAsync } = BackendAPI();
+const { fetchEventsAsync } = BackendAPI();
 
 const CalendarPage = () => {
-  const { user} = useContext(UserContext); // eslint-disable-line
-    const [ setUsers] = useState([]); 
+  const { user } = useContext(UserContext); // eslint-disable-line
+  const [localData, setLocalData] = useState(null);
 
-  const [localData, setLocalData] = useState(null)
+  const getEvents = async () => {
+    try {
+      const response = await fetchEventsAsync();
+      console.log("user: ", user);
+      console.log("events from database :", response);
+      let temp = [...response];
+      temp = temp.map((el) => {
+        return {
+          Id: el.id,
+          End: new Date(el.endTime),
+          Start: new Date(el.startTime),
+          Summary: el.title,
+          IsReadonly: true,
+          isAllDay: true,
+        };
+      });
+      setLocalData({
+        dataSource: temp,
+        fields: {
+          subject: { name: "Summary", default: "No title is provided" },
+          startTime: { name: "Start" },
+          endTime: { name: "End" },
+        },
+        adaptor: new WebApiAdaptor(),
+        crossDomain: true,
+      });
+    } catch (e) {
+      console.log("error fetching bulletins");
+    }
+  };
 
+  const createEvent = (args) => {
+    console.log("what happen? ", args.addedRecords[0]);
+    const data = {
+      body: args.addedRecords[0].Description,
+      category: "Not Specify",
+      date: new Date().toISOString(),
+      endTime: new Date(
+        args.addedRecords[0].End
+          ? args.addedRecords[0].End
+          : args.addedRecords[0].EndTime
+      ).toISOString(),
+      id: args.addedRecords[0].Id,
+      senderEmail: user.email,
+      senderId: user.id,
+      senderfName: user.fName,
+      senderlName: user.lName,
+      startTime: new Date(
+        args.addedRecords[0].Start
+          ? args.addedRecords[0].Start
+          : args.addedRecords[0].StartTime
+      ).toISOString(),
+      title: args.addedRecords[0].Summary
+        ? args.addedRecords[0].Summary
+        : args.addedRecords[0].Subject,
+    };
+    console.log("Data after added: ", data);
 
+    // post data API here
+
+    // Fetch event again here
+    // getEvents();
+  };
   useEffect(() => {
-    const getUsers = async () => {
-      try {
-        const response = await fetchUsersAsync();
-        setUsers(response);
-        console.log("Users:")
-        console.log(response);
-      } catch (e) {
-        console.log("error fetching users");
-        console.log(e);
-      }
-    };
-    const getEvents = async () => {
-      try {
-        const response = await fetchEventsAsync();
-        console.log("user: ", user.fName, user.lName);
-        console.log("response :", response);
-        let temp = [...response];
-        temp = temp.map((el) => {
-          return {
-            Id: el._rid,
-            End: new Date(el.endTime),
-            Start: new Date(el.startTime),
-            Summary: el.title,
-            IsReadonly: true
-          };
-        });
-        setLocalData({
-          dataSource: temp,
-          fields: {
-            subject: { name: "Summary", default: "No title is provided" },
-            startTime: { name: "Start" },
-            endTime: { name: "End" },
-          },
-          adaptor: new WebApiAdaptor(),
-          crossDomain: true,
-        });
-      } catch (e) {
-        console.log("error fetching bulletins");
-      }
-    };
-    getUsers();
+    // Data of user
+    console.log("data of current user: ", user);
+
+    // Fetch event
     getEvents();
-  }, []); // eslint-disable-line
+  }, [user]); // eslint-disable-line
 
   return (
     <div>
-      <ScheduleComponent currentView="WorkWeek" eventSettings={localData} >
+      <ScheduleComponent
+        currentView="WorkWeek"
+        eventSettings={localData}
+        actionComplete={(args) => {
+          // console.log("what happen? ", args);
+          if (
+            args.requestType === "eventCreated" &&
+            args.addedRecords != null
+          ) {
+            createEvent(args);
+          }
+        }}
+      >
         <ViewsDirective>
           <ViewDirective option="Day" interval={3}></ViewDirective>
           <ViewDirective option="Week"></ViewDirective>
